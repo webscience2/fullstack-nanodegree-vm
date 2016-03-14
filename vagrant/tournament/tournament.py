@@ -17,6 +17,7 @@ def deleteMatches():
     c = conn.cursor()
     query = "delete from match"
     c.execute(query)
+    conn.commit()
     conn.close()
 
 
@@ -54,8 +55,8 @@ def registerPlayer(name):
     """
     db = connect();
     c = db.cursor()
-    query = "insert into player (name) values ('%s');" % (name)
-    c.execute(query)
+    query = "insert into player (name) values (%s);"
+    c.execute(query, (name,))
     db.commit()
     db.close()
 
@@ -74,21 +75,22 @@ def playerStandings():
         matches: the number of matches the player has played
     """
     standings = []
-
     db = connect()
     c = db.cursor()
-    query = "select player_id,name from player" 
+    query = """ select player_id,name,count(distinct(match_id)), 
+                sum 
+                   (case when player_id=result then 1
+                    else 0
+                    END) as wins 
+                from player 
+                left outer join match on (match.pida=player_id or match.pidb=player_id) 
+                group by player_id order by WINS desc; """
     c.execute(query)
     rows = c.fetchall()
     for row in rows:
-        query = "select count(0) from player,match where player.player_id=match.result "
-        c.execute(query)
-        result=c.fetchone()
-        query = "select count(0) from match where pida=%d or pidb=%d" % (row[0],row[0])
-        c.execute(query)
-        match_result = c.fetchone()
-        standings.append((row[0],row[1],result[0],match_result[0]))
+        standings.append((row[0],row[1],row[3],row[2]))
     db.close()
+    return standings
 
 
 def reportMatch(winner, loser):
@@ -98,6 +100,14 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
+    db = connect();
+    c = db.cursor()
+    query = "insert into match (pida,pidb,result) values (%s,%s,%s);"
+    c.execute(query, (winner,loser,winner))
+    db.commit()
+    db.close()
+
+
  
  
 def swissPairings():
@@ -115,5 +125,14 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
+    standings  = playerStandings()
+    nextRound = [] 
+
+    for i in range(0,len(standings),2):
+        nextRound.append((standings[i][0],standings[i][1],standings[i+1][0],standings[i+1][1]))
+
+    return nextRound
+
+
 
 

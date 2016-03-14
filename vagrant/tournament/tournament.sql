@@ -13,10 +13,7 @@ DROP TABLE IF EXISTS player;
 -- PLAYER table
 CREATE TABLE player (
     player_id SERIAL primary key,
-    name  varchar(40) NOT NULL CHECK (name <> ''),
-    wins integer, 
-    player_losses integer,
-    ranking integer
+    name  varchar(40) NOT NULL CHECK (name <> '')
 ); 
 
 DROP TABLE IF EXISTS match;
